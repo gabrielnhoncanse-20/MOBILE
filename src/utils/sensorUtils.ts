@@ -20,7 +20,7 @@ export const sensoresIniciais: Medicao[] = [
       tipo: "Umidade",
       unidade: "%",
     },
-    valor: 58,
+    valor: 56,
     data: new Date(),
   },
   {
@@ -38,10 +38,34 @@ export const sensoresIniciais: Medicao[] = [
 
 export function simularNovasMedicoes(medicoes: Medicao[]): Medicao[] {
   return medicoes.map((medicao) => {
-    const variacao = (Math.random() * 2 - 1) * 10;
+    const lowerTipo = medicao.sensor.tipo.toLowerCase();
+    let variacao = 0;
+    let novoValor = medicao.valor;
+
+    if (lowerTipo.includes("temperatura")) {
+      variacao = (Math.random() * 2 - 1) * 2; 
+      novoValor = medicao.valor + variacao;
+    } else if (lowerTipo.includes("umidade")) {
+      variacao = (Math.random() * 2 - 1) * 6; 
+      novoValor = medicao.valor + variacao;
+    } else if (lowerTipo.includes("luminosidade")) {
+      variacao = (Math.random() * 2 - 1) * 100; 
+      novoValor = medicao.valor + variacao;
+    } else {
+      variacao = (Math.random() * 2 - 1) * 10;
+      novoValor = medicao.valor + variacao;
+    }
+
+    if (lowerTipo.includes("umidade")) {
+      novoValor = Math.min(100, Math.max(0, novoValor));
+    }
+    if (lowerTipo.includes("luminosidade")) {
+      novoValor = Math.max(0, novoValor);
+    }
+
     return {
       ...medicao,
-      valor: Number((medicao.valor + variacao).toFixed(1)),
+      valor: Number(novoValor.toFixed(lowerTipo.includes("luminosidade") ? 0 : 1)),
       data: new Date(),
     };
   });

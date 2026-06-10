@@ -7,7 +7,9 @@ import {
   ScrollView,
 } from "react-native";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import type { Medicao } from "./src/types";
+
+// Importando a modelagem e as funções do seu arquivo atualizado
+import { Medicao } from "./src/types";
 import {
   sensoresIniciais,
   simularNovasMedicoes,
@@ -17,12 +19,22 @@ import {
 } from "./src/utils/sensorUtils";
 
 export default function App() {
+  // Garanta que o estado inicial está puxando a nova lista de sensores do seu arquivo
   const [medicoes, setMedicoes] = useState<Medicao[]>(sensoresIniciais);
   const [historico, setHistorico] = useState<Medicao[]>([]); 
 
   function tratarGerarMedicoes() {
+    // Guarda as medições antigas no histórico antes de atualizar
     setHistorico((prev) => [...medicoes, ...prev].slice(0, 15));
+
+    // Executa a sua função de simulação que calcula os novos valores
     const novas = simularNovasMedicoes(medicoes);
+
+    // Log para debug: conferir valores antes e depois
+    // (vai aparecer no terminal Metro / console do dispositivo)
+    console.log("Medicoes atuais:", JSON.stringify(medicoes, null, 2));
+    console.log("Novas medicoes geradas:", JSON.stringify(novas, null, 2));
+
     setMedicoes(novas);
   }
 
@@ -31,48 +43,56 @@ export default function App() {
       <Text style={styles.titulo}>EcoCut Monitoramento</Text>
       <Text style={styles.subtitulo}>Sprint 2 - Modelagem de Sistema</Text>
 
-      {/* --- CARDS PRINCIPAIS --- */}
+      {/* --- RENDERIZAÇÃO DOS CARDS --- */}
       {medicoes.map((m) => {
+        // Puxa a lógica de status e cores baseada no valor e no tipo do sensor
         const statusValido = calcularStatus(m.valor, m.sensor.tipo);
         const corCard = obterCorStatus(statusValido);
+
         return (
           <View key={m.id} style={[styles.card, { borderLeftColor: corCard }]}>
             <View style={styles.sensorContainer}>
               <Ionicons name="hardware-chip" size={24} color="#333" />
               <View style={styles.textoSensorContainer}>
+                {/* Exibe o Nome Real do Sensor (Ex: Umidade do Solo) */}
                 <Text style={styles.sensorNome}>{m.sensor.nome}</Text>
                 <Text style={styles.sensorTipo}>Tipo: {m.sensor.tipo}</Text>
               </View>
             </View>
+
+            {/* AQUI ESTAVA O PROBLEMA: Agora exibe o VALOR e a UNIDADE 100% dinâmicos, sem travar em ifs */}
             <Text style={styles.valor}>
               {m.valor} {m.sensor.unidade}
             </Text>
+
             <View style={styles.rodapeCard}>
               <Text style={[styles.status, { color: corCard }]}>
                 STATUS: {statusValido.toUpperCase()}
               </Text>
-              {/* 3. Exibindo a data com o formato profissional que criamos */}
               <Text style={styles.dataTexto}>{formatarData(m.data)}</Text>
             </View>
           </View>
         );
       })}
+
+      {/* Botão de atualizar */}
       <TouchableOpacity style={styles.botao} onPress={tratarGerarMedicoes}>
         <Ionicons name="refresh" size={20} color="white" />
         <Text style={styles.botaoTexto}>Gerar Novas Medições</Text>
       </TouchableOpacity>
 
-      {/* 4. NOVA SEÇÃO: Histórico Recente (Aparece só depois de clicar no botão) */}
+      {/* --- SEÇÃO DO HISTÓRICO --- */}
       {historico.length > 0 && (
         <View style={styles.historicoContainer}>
           <Text style={styles.historicoTitulo}>Histórico Recente</Text>
+          
           {historico.map((h, index) => {
             const corHistorico = obterCorStatus(calcularStatus(h.valor, h.sensor.tipo));
             return (
               <View key={index} style={styles.itemHistorico}>
                 <View style={[styles.bolinhaStatus, { backgroundColor: corHistorico }]} />
                 <Text style={styles.textoHistorico}>
-                  {h.sensor.tipo}: {h.valor}{h.sensor.unidade}
+                  {h.sensor.nome}: {h.valor} {h.sensor.unidade}
                 </Text>
                 <Text style={styles.dataHistorico}>{formatarData(h.data)}</Text>
               </View>
@@ -176,7 +196,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginLeft: 10,
   },
-  /* --- Novos Estilos do Histórico --- */
   historicoContainer: {
     marginTop: 15,
     paddingTop: 20,

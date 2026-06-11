@@ -1,7 +1,13 @@
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
+<<<<<<< HEAD
     "strict": true,
     "moduleResolution": "node"
   }
 }
+=======
+    "strict": true
+  }
+}
+>>>>>>> 8d14f3e1a3e7f8e4fdeff2e666a9235639a2680c

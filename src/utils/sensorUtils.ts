@@ -36,12 +36,9 @@ export const sensoresIniciais: Medicao[] = [
   },
 ];
 
-
-// Gera número aleatório entre mínimo e máximo
 function gerarAleatorio(min: number, max: number): number {
   return Math.random() * (max - min) + min;
 }
-
 
 export function simularNovasMedicoes(medicoes: Medicao[]): Medicao[] {
   return medicoes.map((medicao) => {
@@ -52,21 +49,17 @@ export function simularNovasMedicoes(medicoes: Medicao[]): Medicao[] {
 
     if (tipo.includes("temperatura")) {
 
-      // 20°C até 120°C
       novoValor = gerarAleatorio(20, 120);
 
     } 
     else if (tipo.includes("energia") || tipo.includes("bateria")) {
 
-      // 0% até 100%
       novoValor = gerarAleatorio(0, 100);
 
     } 
     else if (tipo.includes("vibração")) {
 
-      // 0.7 até 4 mm/s
       novoValor = gerarAleatorio(0.7, 4);
-
     } 
     else {
 
@@ -88,11 +81,9 @@ export function simularNovasMedicoes(medicoes: Medicao[]): Medicao[] {
 }
 
 
-
 export function calcularStatus(valor: number, tipo: string): string {
 
   const lowerTipo = tipo.toLowerCase();
-
 
   if (lowerTipo.includes("temperatura")) {
 
@@ -101,7 +92,6 @@ export function calcularStatus(valor: number, tipo: string): string {
 
     return "normal";
   }
-
 
   if (
     lowerTipo.includes("energia") ||
@@ -114,7 +104,6 @@ export function calcularStatus(valor: number, tipo: string): string {
     return "normal";
   }
 
-
   if (lowerTipo.includes("vibração")) {
 
     if (valor < 1) return "baixo";
@@ -122,11 +111,8 @@ export function calcularStatus(valor: number, tipo: string): string {
 
     return "normal";
   }
-
-
   return valor > 50 ? "alto" : "normal";
 }
-
 
 
 export function obterCorStatus(status: string): string {
@@ -139,8 +125,6 @@ export function obterCorStatus(status: string): string {
 
   return "#2ecc71";
 }
-
-
 
 export function formatarData(data: Date): string {
 

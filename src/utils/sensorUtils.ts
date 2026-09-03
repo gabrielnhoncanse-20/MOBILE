@@ -2,9 +2,9 @@ import type { Medicao } from "../types";
 
 export const sensoresIniciais: Medicao[] = [
   {
-    id: "1",
+    id: 1,
     sensor: {
-      id: "s1",
+      id: 1,
       nome: "Temperatura Motor",
       tipo: "Temperatura",
       unidade: "°C",
@@ -13,9 +13,9 @@ export const sensoresIniciais: Medicao[] = [
     data: new Date(),
   },
   {
-    id: "2",
+    id: 2,
     sensor: {
-      id: "s2",
+      id: 2,
       nome: "Bateria",
       tipo: "Energia",
       unidade: "%",
@@ -24,9 +24,9 @@ export const sensoresIniciais: Medicao[] = [
     data: new Date(),
   },
   {
-    id: "3",
+    id: 3,
     sensor: {
-      id: "s3",
+      id: 3,
       nome: "Vibração",
       tipo: "Vibração",
       unidade: "mm/s",
@@ -36,80 +36,33 @@ export const sensoresIniciais: Medicao[] = [
   },
 ];
 
-function gerarAleatorio(min: number, max: number): number {
-  return Math.random() * (max - min) + min;
-}
-
-export function simularNovasMedicoes(medicoes: Medicao[]): Medicao[] {
-  return medicoes.map((medicao) => {
-    const tipo = medicao.sensor.tipo.toLowerCase();
-    let novoValor = medicao.valor;
-
-    if (tipo.includes("temperatura")) {
-      novoValor = gerarAleatorio(20, 120);
-    } 
-    else if (tipo.includes("energia") || tipo.includes("bateria")) {
-      novoValor = gerarAleatorio(0, 100);
-    } 
-    
-    else if (tipo.includes("vibra") || tipo.includes("vibração")) {
-      novoValor = gerarAleatorio(0.7, 4);
-    } 
-    else {
-      novoValor = gerarAleatorio(0, 100);
-    }
-
-    return {
-      ...medicao,
-      valor: Number(
-        novoValor.toFixed(
-          (tipo.includes("vibra") || tipo.includes("vibração")) ? 2 : 1
-        )
-      ),
-      data: new Date(),
-    };
-  });
-}
-
-export function calcularStatus(valor: number, tipo: string): string {
-  const lowerTipo = tipo.toLowerCase();
-
-  if (lowerTipo.includes("temperatura")) {
-    if (valor < 40) return "baixo";
-    if (valor > 90) return "alto";
-    return "normal";
-  }
-
-  if (lowerTipo.includes("energia") || lowerTipo.includes("bateria")) {
-    if (valor < 20) return "baixo";
-    if (valor > 90) return "alto";
-    return "normal";
-  }
-
-  if (lowerTipo.includes("vibra") || lowerTipo.includes("vibração")) {
-    if (valor < 1.0) return "baixo";
-    if (valor > 3.0) return "alto";
-    return "normal";
-  }
-
-  return valor > 50 ? "alto" : "normal";
+export function calcularStatus(valor: number): string {
+  if (valor > 100) return "critico";
+  if (valor > 80) return "alerta";
+  return "normal";
 }
 
 export function obterCorStatus(status: string): string {
   const lowerStatus = status.toLowerCase();
-  if (lowerStatus === "alto") return "#e74c3c";
-  if (lowerStatus === "baixo") return "#f39c12";
+  if (lowerStatus === "critico") return "#e74c3c";
+  if (lowerStatus === "alerta") return "#f39c12";
   return "#2ecc71";
 }
 
-export function formatarData(data: Date): string {
-  const dia = String(data.getDate()).padStart(2, "0");
-  const mes = String(data.getMonth() + 1).padStart(2, "0");
-  const ano = data.getFullYear();
+export function formatarData(data: Date | string): string {
+  const dateObj = typeof data === "string" ? new Date(data) : data;
 
-  const hora = String(data.getHours()).padStart(2, "0");
-  const minuto = String(data.getMinutes()).padStart(2, "0");
-  const segundo = String(data.getSeconds()).padStart(2, "0");
+  if (Number.isNaN(dateObj.getTime())) {
+    return "Data indisponível";
+  }
+
+  const dia = String(dateObj.getDate()).padStart(2, "0");
+  const mes = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const ano = dateObj.getFullYear();
+
+  const hora = String(dateObj.getHours()).padStart(2, "0");
+  const minuto = String(dateObj.getMinutes()).padStart(2, "0");
+  const segundo = String(dateObj.getSeconds()).padStart(2, "0");
 
   return `${dia}/${mes}/${ano} às ${hora}:${minuto}:${segundo}`;
 }

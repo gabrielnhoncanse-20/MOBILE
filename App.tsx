@@ -1,230 +1,136 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  ActivityIndicator,
   ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-<<<<<<< HEAD
 import Ionicons from "@expo/vector-icons/Ionicons";
 
-// Importando a modelagem e as funções do seu arquivo atualizado
-import { Medicao } from "./src/types";
+import type { Medicao } from "./src/types";
+import { listarMedicoes, gerarNovaMedicao } from "./src/services/api";
 import {
-  sensoresIniciais,
-  simularNovasMedicoes,
   calcularStatus,
-  obterCorStatus,
   formatarData,
+  obterCorStatus,
 } from "./src/utils/sensorUtils";
 
 export default function App() {
-  // Garanta que o estado inicial está puxando a nova lista de sensores do seu arquivo
-  const [medicoes, setMedicoes] = useState<Medicao[]>(sensoresIniciais);
-  const [historico, setHistorico] = useState<Medicao[]>([]); 
+  const [medicoes, setMedicoes] = useState<Medicao[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
 
-  function tratarGerarMedicoes() {
-    // Guarda as medições antigas no histórico antes de atualizar
-    setHistorico((prev) => [...medicoes, ...prev].slice(0, 15));
+  async function carregarMedicoes() {
+    setCarregando(true);
+    setErro(null);
 
-    // Executa a sua função de simulação que calcula os novos valores
-    const novas = simularNovasMedicoes(medicoes);
-
-    // Log para debug: conferir valores antes e depois
-    // (vai aparecer no terminal Metro / console do dispositivo)
-    console.log("Medicoes atuais:", JSON.stringify(medicoes, null, 2));
-    console.log("Novas medicoes geradas:", JSON.stringify(novas, null, 2));
-=======
-import { Ionicons } from '@expo/vector-icons';
-
-type Medicao = {
-  id: number;
-  sensor: string;
-  valor: number;
-  status: "normal" | "alerta" | "critico";
-};
-
-export default function App() {
-  const [medicoes, setMedicoes] = useState<Medicao[]>([
-    {
-      id: 1,
-      sensor: "Temperatura",
-      valor: 25,
-      status: "normal",
-    },
-    {
-      id: 2,
-      sensor: "Vibração",
-      valor: 45,
-      status: "alerta",
-    },
-    {
-      id: 3,
-      sensor: "Energia",
-      valor: 80,
-      status: "critico",
-    },
-  ]);
-
-  function gerarNovasMedicoes() {
-    const novas = medicoes.map((m) => {
-      const novoValor = Math.floor(Math.random() * 100);
-
-      let novoStatus: "normal" | "alerta" | "critico" =
-        "normal";
-
-      if (novoValor >= 70) {
-        novoStatus = "critico";
-      } else if (novoValor >= 40) {
-        novoStatus = "alerta";
-      }
-
-      return {
-        ...m,
-        valor: novoValor,
-        status: novoStatus,
-      };
-    });
->>>>>>> 8d14f3e1a3e7f8e4fdeff2e666a9235639a2680c
-
-    setMedicoes(novas);
+    try {
+      const dados = await listarMedicoes();
+      setMedicoes(dados);
+    } catch (error) {
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível conectar com o backend.";
+      setErro(mensagem);
+      setMedicoes([]);
+    } finally {
+      setCarregando(false);
+    }
   }
 
-<<<<<<< HEAD
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.titulo}>EcoCut Monitoramento</Text>
-      <Text style={styles.subtitulo}>Sprint 2 - Modelagem de Sistema</Text>
+  useEffect(() => {
+    carregarMedicoes();
+  }, []);
 
-      {/* --- RENDERIZAÇÃO DOS CARDS --- */}
-      {medicoes.map((m) => {
-        // Puxa a lógica de status e cores baseada no valor e no tipo do sensor
-        const statusValido = calcularStatus(m.valor, m.sensor.tipo);
-        const corCard = obterCorStatus(statusValido);
+  async function tratarGerarMedicoes() {
+    setEnviando(true);
+    setErro(null);
 
-        return (
-          <View key={m.id} style={[styles.card, { borderLeftColor: corCard }]}>
-            <View style={styles.sensorContainer}>
-              <Ionicons name="hardware-chip" size={24} color="#333" />
-              <View style={styles.textoSensorContainer}>
-                {/* Exibe o Nome Real do Sensor (Ex: Umidade do Solo) */}
-                <Text style={styles.sensorNome}>{m.sensor.nome}</Text>
-                <Text style={styles.sensorTipo}>Tipo: {m.sensor.tipo}</Text>
-              </View>
-            </View>
-
-            {/* AQUI ESTAVA O PROBLEMA: Agora exibe o VALOR e a UNIDADE 100% dinâmicos, sem travar em ifs */}
-            <Text style={styles.valor}>
-              {m.valor} {m.sensor.unidade}
-            </Text>
-
-            <View style={styles.rodapeCard}>
-              <Text style={[styles.status, { color: corCard }]}>
-                STATUS: {statusValido.toUpperCase()}
-              </Text>
-              <Text style={styles.dataTexto}>{formatarData(m.data)}</Text>
-            </View>
-          </View>
-        );
-      })}
-
-      {/* Botão de atualizar */}
-      <TouchableOpacity style={styles.botao} onPress={tratarGerarMedicoes}>
-        <Ionicons name="refresh" size={20} color="white" />
-        <Text style={styles.botaoTexto}>Gerar Novas Medições</Text>
-      </TouchableOpacity>
-
-      {/* --- SEÇÃO DO HISTÓRICO --- */}
-      {historico.length > 0 && (
-        <View style={styles.historicoContainer}>
-          <Text style={styles.historicoTitulo}>Histórico Recente</Text>
-          
-          {historico.map((h, index) => {
-            const corHistorico = obterCorStatus(calcularStatus(h.valor, h.sensor.tipo));
-            return (
-              <View key={index} style={styles.itemHistorico}>
-                <View style={[styles.bolinhaStatus, { backgroundColor: corHistorico }]} />
-                <Text style={styles.textoHistorico}>
-                  {h.sensor.nome}: {h.valor} {h.sensor.unidade}
-                </Text>
-                <Text style={styles.dataHistorico}>{formatarData(h.data)}</Text>
-              </View>
-            );
-          })}
-        </View>
-      )}
-=======
-  function corStatus(status: string) {
-    switch (status) {
-      case "normal":
-        return "#2ecc71";
-
-      case "alerta":
-        return "#f1c40f";
-
-      case "critico":
-        return "#e74c3c";
+    try {
+      await gerarNovaMedicao();
+      await carregarMedicoes();
+    } catch (error) {
+      const mensagem =
+        error instanceof Error
+          ? error.message
+          : "Erro ao simular nova medição.";
+      setErro(mensagem);
+    } finally {
+      setEnviando(false);
     }
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.titulo}>
-        EcoCut Monitoramento
-      </Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.titulo}>EcoCut Monitoramento</Text>
+      <Text style={styles.subtitulo}>Sprint 3 - Integração Mobile e Backend</Text>
 
-      {medicoes.map((m) => (
-        <View
-          key={m.id}
-          style={[
-            styles.card,
-            {
-              borderLeftColor: corStatus(m.status),
-            },
-          ]}
-        >
-          <View style={styles.sensorContainer}>
-            <Ionicons name="hardware-chip" size={24} color="#333" />
-            <Text style={styles.sensor}>
-              {m.sensor}
-            </Text>
-          </View>
-
-          <Text style={styles.valor}>
-            {m.valor}
-          </Text>
-
-          <Text
-            style={[
-              styles.status,
-              {
-                color: corStatus(m.status),
-              },
-            ]}
-          >
-            {m.status.toUpperCase()}
-          </Text>
+      {carregando ? (
+        <View style={styles.estadoContainer}>
+          <ActivityIndicator size="large" color="#3498db" />
+          <Text style={styles.estadoTexto}>Carregando medições...</Text>
         </View>
-      ))}
+      ) : erro ? (
+        <View style={styles.estadoContainer}>
+          <Text style={styles.erroTexto}>{erro}</Text>
+          <TouchableOpacity style={styles.botaoSecundario} onPress={carregarMedicoes}>
+            <Text style={styles.botaoTexto}>Tentar novamente</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        medicoes.map((m) => {
+          const statusApi = (m as any)?.status;
+          const statusValido =
+            typeof statusApi === "string"
+              ? statusApi.toLowerCase()
+              : calcularStatus(m.valor);
+          const corCard = obterCorStatus(statusValido);
+
+          return (
+            <View key={m.id} style={[styles.card, { borderLeftColor: corCard }]}>
+              <View style={styles.sensorContainer}>
+                <Ionicons name="hardware-chip" size={24} color="#333" />
+                <View style={styles.textoSensorContainer}>
+                  <Text style={styles.sensorNome}>{m.sensor.nome}</Text>
+                  <Text style={styles.sensorTipo}>Tipo: {m.sensor.tipo}</Text>
+                </View>
+              </View>
+
+              <Text style={styles.valor}>
+                {m.valor} {m.sensor.unidade}
+              </Text>
+
+              <View style={styles.rodapeCard}>
+                <Text style={[styles.status, { color: corCard }]}>
+                  STATUS: {statusValido.toUpperCase()}
+                </Text>
+                <Text style={styles.dataTexto}>{formatarData(m.data)}</Text>
+              </View>
+            </View>
+          );
+        })
+      )}
 
       <TouchableOpacity
-        style={styles.botao}
-        onPress={gerarNovasMedicoes}
+        style={[styles.botao, enviando && styles.botaoDesabilitado]}
+        onPress={tratarGerarMedicoes}
+        disabled={enviando || carregando}
       >
         <Ionicons name="refresh" size={20} color="white" />
         <Text style={styles.botaoTexto}>
-          Gerar Novas Medições
+          {enviando ? "Enviando..." : "Gerar Novas Medições"}
         </Text>
       </TouchableOpacity>
->>>>>>> 8d14f3e1a3e7f8e4fdeff2e666a9235639a2680c
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-<<<<<<< HEAD
     flexGrow: 1,
     backgroundColor: "#f4f6f8",
     padding: 20,
@@ -298,6 +204,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#bdc3c7",
   },
+  estadoContainer: {
+    backgroundColor: "#ffffff",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  estadoTexto: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#2c3e50",
+    textAlign: "center",
+  },
+  erroTexto: {
+    color: "#c0392b",
+    fontSize: 15,
+    textAlign: "center",
+    marginBottom: 12,
+    fontWeight: "600",
+  },
   botao: {
     backgroundColor: "#3498db",
     padding: 16,
@@ -308,6 +235,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     elevation: 2,
+  },
+  botaoSecundario: {
+    backgroundColor: "#2c3e50",
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 10,
+  },
+  botaoDesabilitado: {
+    opacity: 0.6,
   },
   botaoTexto: {
     color: "#fff",
@@ -356,73 +292,4 @@ const styles = StyleSheet.create({
     color: "#95a5a6",
   },
 });
-=======
-    flex: 1,
-    backgroundColor: "#f4f6f8",
-    padding: 20,
-  },
 
-  titulo: {
-    fontSize: 30,
-    fontWeight: "bold",
-    marginTop: 50,
-    marginBottom: 30,
-    textAlign: "center",
-  },
-
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    borderLeftWidth: 10,
-
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5,
-  },
-
-  sensorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-
-  sensor: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginLeft: 10,
-  },
-
-  valor: {
-    fontSize: 28,
-    fontWeight: "bold",
-    marginVertical: 10,
-  },
-
-  status: {
-    fontSize: 14,
-    fontWeight: "600",
-  },
-
-  botao: {
-    backgroundColor: "#3498db",
-    padding: 18,
-    borderRadius: 15,
-    marginTop: 20,
-    marginBottom: 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  botaoTexto: {
-    color: "#fff",
-    fontSize: 18,
-    textAlign: "center",
-    fontWeight: "bold",
-    marginLeft: 10,
-  },
-});
->>>>>>> 8d14f3e1a3e7f8e4fdeff2e666a9235639a2680c

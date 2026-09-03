@@ -1,12 +1,12 @@
 export type Sensor = {
-  id: string;
+  id: number;
   nome: string;
   tipo: string;
   unidade: string;
 };
 
 export type Medicao = {
-  id: string;
+  id: number;
   sensor: Sensor;
   valor: number;
   data: Date;

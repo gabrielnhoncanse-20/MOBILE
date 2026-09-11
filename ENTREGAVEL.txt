@@ -1,9 +1,9 @@
 Nome e RM dos integrantes:
-- Nome completo: [preencher]
-- RM: [preencher]
+- Nome completo: [Gabriel Bastos Nhoncanse]
+- RM: [562022]
 
 Link do repositório do backend:
-[preencher]
+[https://github.com/gabrielnhoncanse-20/monitoramento-Api.git]
 
 Link do repositório do frontend:
-[preencher]
+[https://github.com/gabrielnhoncanse-20/MOBILE.git]

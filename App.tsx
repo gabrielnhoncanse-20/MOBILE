@@ -27,17 +27,11 @@ export default function App() {
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
-  const ultimasMedicoes = Array.from(
-    medicoes.reduce((porSensor, medicao) => {
-      const atual = porSensor.get(medicao.sensor.id);
-      if (!atual || medicao.data.getTime() > atual.data.getTime()) {
-        porSensor.set(medicao.sensor.id, medicao);
-      }
-      return porSensor;
-    }, new Map<number, Medicao>()),
-  )
-    .map(([, medicao]) => medicao)
-    .sort((a, b) => a.sensor.nome.localeCompare(b.sensor.nome, "pt-BR"));
+  const medicoesOrdenadas = [...medicoes].sort(
+    (a, b) =>
+      b.data.getTime() - a.data.getTime() ||
+      b.id - a.id,
+  );
 
   async function carregarMedicoes() {
     setCarregando(true);
@@ -97,7 +91,7 @@ export default function App() {
             <Text style={styles.botaoTexto}>Tentar novamente</Text>
           </TouchableOpacity>
         </View>
-      ) : ultimasMedicoes.length === 0 ? (
+      ) : medicoesOrdenadas.length === 0 ? (
         <View style={styles.estadoContainer}>
           <Text style={styles.estadoTexto}>Nenhuma medição encontrada.</Text>
           <Text style={styles.mensagemVazia}>
@@ -105,7 +99,7 @@ export default function App() {
           </Text>
         </View>
       ) : (
-        ultimasMedicoes.map((m) => {
+        medicoesOrdenadas.map((m) => {
           const statusApi = m.status;
           const statusValido = statusApi
           ? statusApi.toLowerCase()

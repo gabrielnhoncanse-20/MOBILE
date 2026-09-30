@@ -1,41 +1,5 @@
 import type { Medicao } from "../types";
 
-export const sensoresIniciais: Medicao[] = [
-  {
-    id: 1,
-    sensor: {
-      id: 1,
-      nome: "Temperatura Motor",
-      tipo: "Temperatura",
-      unidade: "°C",
-    },
-    valor: 25,
-    data: new Date(),
-  },
-  {
-    id: 2,
-    sensor: {
-      id: 2,
-      nome: "Bateria",
-      tipo: "Energia",
-      unidade: "%",
-    },
-    valor: 56,
-    data: new Date(),
-  },
-  {
-    id: 3,
-    sensor: {
-      id: 3,
-      nome: "Vibração",
-      tipo: "Vibração",
-      unidade: "mm/s",
-    },
-    valor: 1.2,
-    data: new Date(),
-  },
-];
-
 export function calcularStatus(valor: number): string {
   if (valor > 100) return "critico";
   if (valor > 80) return "alerta";
@@ -44,8 +8,10 @@ export function calcularStatus(valor: number): string {
 
 export function obterCorStatus(status: string): string {
   const lowerStatus = status.toLowerCase();
+
   if (lowerStatus === "critico") return "#e74c3c";
   if (lowerStatus === "alerta") return "#f39c12";
+
   return "#2ecc71";
 }
 
@@ -65,4 +31,12 @@ export function formatarData(data: Date | string): string {
   const segundo = String(dateObj.getSeconds()).padStart(2, "0");
 
   return `${dia}/${mes}/${ano} às ${hora}:${minuto}:${segundo}`;
+}
+
+export function formatarValorMedicao(valor: number, tipo: string): string {
+  const casasDecimais = tipo.toUpperCase().includes("BATERIA") ? 0 : 1;
+  return new Intl.NumberFormat("pt-BR", {
+    minimumFractionDigits: casasDecimais,
+    maximumFractionDigits: casasDecimais,
+  }).format(valor);
 }

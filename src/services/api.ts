@@ -2,113 +2,161 @@ import { Platform } from "react-native";
 import type { Medicao, Sensor } from "../types";
 
 const BASE_URL = Platform.select({
-    ios: "http://localhost:8080",
-    android: "http://10.0.2.2:8080",
-    default: "http://localhost:8080",
+  ios: "http://localhost:8080",
+  android: "http://10.0.2.2:8080",
+  default: "http://localhost:8080",
 });
 
 const normalizeSensor = (sensor: any): Sensor => ({
-    id: Number(sensor?.id ?? 0),
-    nome: sensor?.nome ?? "Sensor",
-    tipo: sensor?.tipo ?? "",
-    unidade: sensor?.unidade ?? "",
+  id: Number(sensor?.id ?? 0),
+  nome: sensor?.nome ?? "Sensor",
+  tipo: sensor?.tipo ?? "",
+  unidade: sensor?.unidade ?? "",
+  limiteMinimo:
+    sensor?.limiteMinimo == null ? undefined : Number(sensor.limiteMinimo),
+  limiteMaximo:
+    sensor?.limiteMaximo == null ? undefined : Number(sensor.limiteMaximo),
 });
 
 const normalizeMedicao = (item: any): Medicao => ({
-    id: Number(item?.id ?? 0),
-    sensor: normalizeSensor(item?.sensor ?? {}),
-    valor: Number(item?.valor ?? 0),
-    data: item?.data ? new Date(item.data) : new Date(),
+  id: Number(item?.id ?? 0),
+  sensor: {
+    id: Number(item?.sensor?.id ?? item?.sensorId ?? 0),
+    nome: item?.sensor?.nome ?? item?.sensorNome ?? "Sensor",
+    tipo: item?.sensor?.tipo ?? item?.sensorTipo ?? "",
+    unidade: item?.sensor?.unidade ?? item?.sensorUnidade ?? "",
+  },
+  valor: Number(item?.valor ?? 0),
+  data: item?.data ? new Date(item.data) : new Date(),
+  status: item?.status,
 });
 
-async function request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-): Promise<T> {
-    const url = `${BASE_URL}${endpoint}`;
+const normalizarTipoSensor = (tipo: string): string =>
+  tipo
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
 
-    const response = await fetch(url, {
-        headers: {
-            "Content-Type": "application/json",
-            ...(options.headers ?? {}),
-        },
-        ...options,
-    });
+async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const url = `${BASE_URL}${endpoint}`;
 
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || `Erro na requisição: ${response.status}`);
-    }
+  const response = await fetch(url, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers ?? {}),
+    },
+    ...options,
+  });
 
-    const contentType = response.headers.get("content-type") || "";
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Erro na requisição: ${response.status}`);
+  }
 
-    if (contentType.includes("application/json")) {
-        return response.json() as Promise<T>;
-    }
+  const contentType = response.headers.get("content-type") || "";
 
-    return response.text() as unknown as T;
+  if (contentType.includes("application/json")) {
+    return response.json() as Promise<T>;
+  }
+
+  return response.text() as unknown as T;
 }
 
 export async function listarSensores(): Promise<Sensor[]> {
-    const endpoints = ["/sensores", "/api/sensores"];
+  const data = await request<any[]>("/sensores");
 
-    for (const endpoint of endpoints) {
-        try {
-            const data = await request<any[]>(endpoint);
-            if (Array.isArray(data)) {
-                return data.map(normalizeSensor);
-            }
-        } catch (error) {
-            continue;
-        }
-    }
+  if (!Array.isArray(data)) {
+    throw new Error("A API não retornou uma lista de sensores.");
+  }
 
-    throw new Error("Não foi possível listar sensores. Verifique o backend.");
+  return data.map(normalizeSensor);
 }
 
 export async function listarMedicoes(): Promise<Medicao[]> {
-    const endpoints = ["/medicoes", "/api/medicoes"];
+  const data = await request<any[]>("/medicoes");
 
-    for (const endpoint of endpoints) {
-        try {
-            const data = await request<any[]>(endpoint);
-            if (Array.isArray(data)) {
-                return data.map(normalizeMedicao);
-            }
-        } catch (error) {
-            continue;
-        }
-    }
+  if (!Array.isArray(data)) {
+    throw new Error("A API não retornou uma lista de medições.");
+  }
 
-    throw new Error("Não foi possível listar medições. Verifique o backend.");
+  return data.map(normalizeMedicao);
 }
 
-export async function gerarNovaMedicao(sensorId?: number): Promise<Medicao> {
-    const endpoints = [
-        "/medicoes/simular",
-        "/api/medicoes/simular",
-        "/medicoes",
-        "/api/medicoes",
-    ];
+export async function gerarMedicoesDosSensoresPadrao(): Promise<Medicao[]> {
+  const padroes = [
+    {
+      nome: "Sensor de temperatura",
+      tipo: "TEMPERATURA",
+      unidade: "°C",
+      limiteMinimo: 0,
+      limiteMaximo: 100,
+    },
+    {
+      nome: "Sensor de bateria",
+      tipo: "BATERIA",
+      unidade: "%",
+      limiteMinimo: 0,
+      limiteMaximo: 100,
+    },
+    {
+      nome: "Sensor de vibração",
+      tipo: "VIBRACAO",
+      unidade: "mm/s",
+      limiteMinimo: 0,
+      limiteMaximo: 10,
+    },
+  ];
 
-    const payload = sensorId ? { sensorId } : {};
+  let sensores = await listarSensores();
 
-    for (const endpoint of endpoints) {
-        try {
-            const data = await request<any>(endpoint, {
-                method: "POST",
-                body: JSON.stringify(payload),
-            });
+  for (const padrao of padroes) {
+    const sensorExistente = sensores.find(
+      (sensor) => normalizarTipoSensor(sensor.tipo) === padrao.tipo,
+    );
 
-            if (data) {
-                return normalizeMedicao(data);
-            }
-        } catch (error) {
-            continue;
-        }
+    if (sensorExistente) continue;
+
+    const criado = await request<any>("/sensores", {
+      method: "POST",
+      body: JSON.stringify({ ...padrao, local: "Linha de produção", ativo: true }),
+    });
+    sensores = [...sensores, normalizeSensor(criado)];
+  }
+
+  const sensoresPadrao = padroes.map((padrao) => {
+    const sensor = sensores.find(
+      (item) => normalizarTipoSensor(item.tipo) === padrao.tipo,
+    );
+
+    if (!sensor) {
+      throw new Error(`Não foi possível localizar o sensor ${padrao.nome}.`);
     }
 
-    throw new Error("Não foi possível simular uma nova medição. Verifique o backend.");
+    return { sensor, padrao };
+  });
+
+  return Promise.all(
+    sensoresPadrao.map(async ({ sensor, padrao }) => {
+      const minimo = padrao.tipo === "BATERIA"
+        ? 0
+        : sensor.limiteMinimo ?? padrao.limiteMinimo;
+      const maximo = padrao.tipo === "BATERIA"
+        ? 100
+        : sensor.limiteMaximo ?? padrao.limiteMaximo;
+      const casasDecimais = padrao.tipo === "BATERIA" ? 0 : 1;
+      const fator = 10 ** casasDecimais;
+      const valor =
+        Math.round((minimo + Math.random() * (maximo - minimo)) * fator) /
+        fator;
+      const data = await request<any>("/medicoes", {
+        method: "POST",
+        body: JSON.stringify({ sensorId: sensor.id, valor }),
+      });
+
+      return normalizeMedicao(data);
+    }),
+  );
 }
 
 export { BASE_URL };

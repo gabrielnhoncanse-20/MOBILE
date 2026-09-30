@@ -7,13 +7,17 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import { Ionicons } from "@expo/vector-icons";
 
 import type { Medicao } from "./src/types";
-import { listarMedicoes, gerarNovaMedicao } from "./src/services/api";
+import {
+  listarMedicoes,
+  gerarMedicoesDosSensoresPadrao,
+} from "./src/services/api";
 import {
   calcularStatus,
   formatarData,
+  formatarValorMedicao,
   obterCorStatus,
 } from "./src/utils/sensorUtils";
 
@@ -22,6 +26,18 @@ export default function App() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  const ultimasMedicoes = Array.from(
+    medicoes.reduce((porSensor, medicao) => {
+      const atual = porSensor.get(medicao.sensor.id);
+      if (!atual || medicao.data.getTime() > atual.data.getTime()) {
+        porSensor.set(medicao.sensor.id, medicao);
+      }
+      return porSensor;
+    }, new Map<number, Medicao>()),
+  )
+    .map(([, medicao]) => medicao)
+    .sort((a, b) => a.sensor.nome.localeCompare(b.sensor.nome, "pt-BR"));
 
   async function carregarMedicoes() {
     setCarregando(true);
@@ -51,7 +67,7 @@ export default function App() {
     setErro(null);
 
     try {
-      await gerarNovaMedicao();
+      await gerarMedicoesDosSensoresPadrao();
       await carregarMedicoes();
     } catch (error) {
       const mensagem =
@@ -67,7 +83,7 @@ export default function App() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.titulo}>EcoCut Monitoramento</Text>
-      <Text style={styles.subtitulo}>Sprint 3 - Integração Mobile e Backend</Text>
+      <Text style={styles.subtitulo}>Monitoramento integrado de sensores</Text>
 
       {carregando ? (
         <View style={styles.estadoContainer}>
@@ -81,19 +97,25 @@ export default function App() {
             <Text style={styles.botaoTexto}>Tentar novamente</Text>
           </TouchableOpacity>
         </View>
+      ) : ultimasMedicoes.length === 0 ? (
+        <View style={styles.estadoContainer}>
+          <Text style={styles.estadoTexto}>Nenhuma medição encontrada.</Text>
+          <Text style={styles.mensagemVazia}>
+            Toque em “Gerar Novas Medições” para criar a primeira medição.
+          </Text>
+        </View>
       ) : (
-        medicoes.map((m) => {
-          const statusApi = (m as any)?.status;
-          const statusValido =
-            typeof statusApi === "string"
-              ? statusApi.toLowerCase()
-              : calcularStatus(m.valor);
+        ultimasMedicoes.map((m) => {
+          const statusApi = m.status;
+          const statusValido = statusApi
+          ? statusApi.toLowerCase()
+          : calcularStatus(m.valor);
           const corCard = obterCorStatus(statusValido);
 
           return (
             <View key={m.id} style={[styles.card, { borderLeftColor: corCard }]}>
               <View style={styles.sensorContainer}>
-                <Ionicons name="hardware-chip" size={24} color="#333" />
+                <Ionicons name="hardware-chip" size={20} color="#333" />
                 <View style={styles.textoSensorContainer}>
                   <Text style={styles.sensorNome}>{m.sensor.nome}</Text>
                   <Text style={styles.sensorTipo}>Tipo: {m.sensor.tipo}</Text>
@@ -101,7 +123,7 @@ export default function App() {
               </View>
 
               <Text style={styles.valor}>
-                {m.valor} {m.sensor.unidade}
+                {formatarValorMedicao(m.valor, m.sensor.tipo)} {m.sensor.unidade}
               </Text>
 
               <View style={styles.rodapeCard}>
@@ -139,7 +161,7 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 28,
     fontWeight: "bold",
-    marginTop: 50,
+    marginTop: 30,
     textAlign: "center",
     color: "#2c3e50",
   },
@@ -147,15 +169,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#7f8c8d",
     textAlign: "center",
-    marginBottom: 25,
+    marginBottom: 16,
     fontWeight: "500",
   },
   card: {
     backgroundColor: "#ffffff",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderLeftWidth: 12,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderLeftWidth: 6,
     shadowColor: "#000000",
     shadowOpacity: 0.08,
     shadowRadius: 8,
@@ -164,14 +186,14 @@ const styles = StyleSheet.create({
   sensorContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 6,
   },
   textoSensorContainer: {
     marginLeft: 12,
     flex: 1,
   },
   sensorNome: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: "bold",
     color: "#2c3e50",
   },
@@ -181,27 +203,27 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   valor: {
-    fontSize: 32,
+    fontSize: 25,
     fontWeight: "bold",
-    marginVertical: 8,
+    marginVertical: 3,
     color: "#34495e",
   },
   rodapeCard: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 10,
+    marginTop: 5,
     borderTopWidth: 1,
     borderTopColor: "#ecf0f1",
-    paddingTop: 8,
+    paddingTop: 5,
   },
   status: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
     letterSpacing: 0.5,
   },
   dataTexto: {
-    fontSize: 12,
+    fontSize: 11,
     color: "#bdc3c7",
   },
   estadoContainer: {
@@ -216,6 +238,12 @@ const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 16,
     color: "#2c3e50",
+    textAlign: "center",
+  },
+  mensagemVazia: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#7f8c8d",
     textAlign: "center",
   },
   erroTexto: {
